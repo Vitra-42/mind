@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Карта боя</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+}
+
+body{
+    font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;
+    background:
+        radial-gradient(circle at 50% 45%,
+        #eadbb4 0%,
+        #b5c8a7 35%,
+        #71958d 68%,
+        #315d64 100%);
+    color:#294943;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header{
+    position:fixed;
+    z-index:1000;
+    top:0;
+    left:0;
+    right:0;
+    height:105px;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    pointer-events:none;
+
+    color:#fff1cd;
+    text-shadow:0 2px 5px rgba(0,0,0,.45);
+
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(42,77,77,.82),
+            rgba(42,77,77,.35),
+            transparent
+        );
+}
+
+.header h1{
+    margin:0;
+    font-size:34px;
+    font-weight:900;
+}
+
+.header p{
+    margin:5px 0 0;
+    font-size:14px;
+}
+
+/* =========================
+   VIEWPORT
+========================= */
+
+#viewport{
+    position:fixed;
+    left:0;
+    right:0;
+    top:105px;
+    bottom:0;
+    overflow:hidden;
+    cursor:grab;
+}
+
+#viewport.dragging{
+    cursor:grabbing;
+}
+
+#world{
+    position:absolute;
+    width:30000px;
+    height:18000px;
+    left:0;
+    top:0;
+    transform-origin:0 0;
+}
+
+/* =========================
+   SVG
+========================= */
+
+#links{
+    position:absolute;
+    width:30000px;
+    height:18000px;
+    left:0;
+    top:0;
+    pointer-events:none;
+    overflow:visible;
+}
+
+.link{
+    fill:none;
+    stroke:rgba(245,233,194,.82);
+    stroke-width:4;
+    stroke-linecap:round;
+}
+
+/* =========================
+   NODE
+========================= */
+
+.node{
+    position:absolute;
+    transform:translate(-50%,-50%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    text-align:center;
+    user-select:none;
+    cursor:pointer;
+
+    opacity:0;
+
+    transition:
+        left .45s cubic-bezier(.22,.61,.36,1),
+        top .45s cubic-bezier(.22,.61,.36,1),
+        opacity .3s ease,
+        transform .25s ease;
+}
+
+.node.visible{
+    opacity:1;
+}
+
+.node:hover{
+    transform:
+        translate(-50%,-50%)
+        scale(1.035);
+}
+
+/* =========================
+   LIFE
+========================= */
+
+.life{
+    width:180px;
+    height:180px;
+    border-radius:50%;
+
+    background:
+        radial-gradient(circle at 35% 25%,
+        #fff3c8,
+        #d9b86c 55%,
+        #98703d 100%);
+
+    border:5px solid rgba(255,247,215,.9);
+
+    color:#4b3921;
+
+    font-size:28px;
+    font-weight:900;
+
+    box-shadow:
+        0 0 0 14px rgba(242,216,143,.12),
+        0 0 55px rgba(242,211,120,.35),
+        0 20px 45px rgba(0,0,0,.3);
+}
+
+/* =========================
+   DIRECTORY
+========================= */
+
+.directory{
+    width:210px;
+    min-height:76px;
+    padding:14px 18px;
+
+    border-radius:22px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #f5eac8,
+            #bfd4b1
+        );
+
+    border:2px solid rgba(255,250,225,.95);
+
+    color:#294b46;
+
+    font-size:16px;
+    font-weight:900;
+
+    box-shadow:
+        0 10px 27px rgba(0,0,0,.22),
+        inset 0 1px 0 rgba(255,255,255,.65);
+}
+
+/* =========================
+   TASK
+========================= */
+
+.task{
+    width:245px;
+    min-height:78px;
+    padding:14px 18px;
+
+    border-radius:18px;
+
+    background:#fbefd0;
+
+    border:2px solid rgba(255,250,228,.95);
+
+    color:#403a2d;
+
+    font-size:14px;
+    line-height:1.35;
+    font-weight:700;
+
+    box-shadow:
+        0 9px 23px rgba(0,0,0,.2);
+}
+
+/* =========================
+   ALGORITHM STEP
+========================= */
+
+.step{
+    width:270px;
+    min-height:76px;
+    padding:14px 18px;
+
+    border-radius:18px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #dcebdc,
+            #b7d4ca
+        );
+
+    border:2px solid rgba(239,247,230,.95);
+
+    color:#294943;
+
+    font-size:14px;
+    line-height:1.38;
+    font-weight:700;
+
+    box-shadow:
+        0 9px 24px rgba(0,0,0,.18);
+}
+
+/* =========================
+   COLLAPSE BUTTON
+========================= */
+
+.toggle{
+    position:absolute;
+    width:22px;
+    height:22px;
+
+    border-radius:50%;
+
+    right:-11px;
+    top:-11px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:#fff5d7;
+    color:#31554e;
+
+    border:2px solid #31554e;
+
+    font-size:13px;
+    font-weight:900;
+
+    z-index:20;
+}
+
+/* =========================
+   CONTROLS
+========================= */
+
+.controls{
+    position:fixed;
+    right:20px;
+    bottom:18px;
+    z-index:2000;
+
+    display:flex;
+    gap:8px;
+}
+
+.control{
+    width:43px;
+    height:43px;
+
+    border:0;
+    border-radius:50%;
+
+    background:rgba(248,239,210,.95);
+
+    color:#31554e;
+
+    font-size:20px;
+    font-weight:900;
+
+    cursor:pointer;
+
+    box-shadow:
+        0 7px 19px rgba(0,0,0,.23);
+}
+
+.control:hover{
+    transform:scale(1.08);
+}
+
+/* =========================
+   HINT
+========================= */
+
+.hint{
+    position:fixed;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+
+    z-index:2000;
+
+    padding:9px 18px;
+
+    border-radius:20px;
+
+    background:rgba(36,63,61,.6);
+
+    color:#f7edcf;
+
+    font-size:13px;
+
+    pointer-events:none;
+}
+
+@media(max-width:800px){
+
+    .header{
+        height:88px;
+    }
+
+    #viewport{
+        top:88px;
+    }
+
+    .header h1{
+        font-size:24px;
+    }
+
+    .header p{
+        font-size:12px;
+    }
+
+    .life{
+        width:145px;
+        height:145px;
+        font-size:22px;
+    }
+
+    .directory{
+        width:175px;
+        font-size:14px;
+    }
+
+    .task{
+        width:210px;
+        font-size:12px;
+    }
+
+    .step{
+        width:225px;
+        font-size:12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <h1>Карта боя</h1>
+    <p>Сначала вынесите всё из головы, затем разложите по смыслу</p>
+</div>
+
+<div id="viewport">
+    <div id="world">
+        <svg id="links"></svg>
+    </div>
+</div>
+
+<div class="hint" id="hint">
+    Нажмите на «ЖИЗНЬ», чтобы начать
+</div>
+
+<div class="controls">
+    <button class="control" id="minus">−</button>
+    <button class="control" id="home">⌂</button>
+    <button class="control" id="plus">+</button>
+</div>
+
+<script>
+
+/* =========================================================
+   ДАННЫЕ
+========================================================= */
+
+const DATA = {
+
+"Процессы":[
+["Новая упаковка — что там?",[
+"Найти последнюю версию",
+"Выяснить, какие решения уже приняты",
+"Определить текущий этап",
+"Проверить, что блокирует запуск",
+"Уточнить сроки производства",
+"Определить ближайшую контрольную точку"
+]],
+["Позвонить дизайнеру",[
+"Определить вопросы до звонка",
+"Собрать комментарии",
+"Обсудить спорные решения",
+"Договориться о правках",
+"Определить дату новой версии",
+"Зафиксировать результат"
+]],
+["Позвонить в типографию",[
+"Определить тираж",
+"Уточнить материал и формат",
+"Запросить стоимость и сроки",
+"Проверить качество",
+"Согласовать параметры",
+"Передать файлы",
+"Подтвердить заказ"
+]],
+["Согласовать баннер",[
+"Проверить цель",
+"Проверить оффер",
+"Проверить требования площадки",
+"Проверить брендовые элементы",
+"Собрать комментарии",
+"Передать финальную версию"
+]],
+["Пятница — отправить материалы",[
+"Определить состав",
+"Проверить актуальность",
+"Собрать комплект",
+"Проверить версии",
+"Отправить",
+"Убедиться в получении"
+]]
+],
+
+"Финансы":[
+["Спросить у Олега про бюджет",[
+"Определить бюджет",
+"Сверить план расходов",
+"Проверить остаток",
+"Учесть резервы",
+"Уточнить актуальный лимит",
+"Зафиксировать цифру"
+]],
+["Сколько денег осталось на рекламу?",[
+"Взять утверждённый бюджет",
+"Вычесть расходы",
+"Учесть согласованные кампании",
+"Определить остаток",
+"Сопоставить с планом",
+"Определить свободный ресурс"
+]],
+["Отчёт по продвижению",[
+"Собрать данные",
+"Связать активности с результатами",
+"Сравнить каналы",
+"Оценить затраты",
+"Найти сильные и слабые инструменты",
+"Сформировать выводы"
+]],
+["Что делать с остатками?",[
+"Выделить проблемные позиции",
+"Проверить объём и сроки",
+"Понять причину",
+"Оценить перемещение",
+"Рассмотреть промо",
+"Определить способ реализации"
+]]
+],
+
+"Личное":[
+["Купить подарок маме",[
+"Определить повод",
+"Вспомнить интересы",
+"Определить бюджет",
+"Подобрать варианты",
+"Выбрать",
+"Купить"
+]],
+["Оплатить интернет",[
+"Проверить счёт",
+"Проверить срок",
+"Оплатить",
+"Сохранить подтверждение",
+"Проверить работу услуги"
+]],
+["Поменять масло в машине",[
+"Проверить пробег",
+"Определить спецификацию",
+"Выбрать сервис",
+"Записаться",
+"Выполнить замену",
+"Зафиксировать следующий пробег"
+]],
+["Записаться к стоматологу",[
+"Определить необходимый приём",
+"Выбрать специалиста",
+"Посмотреть окна",
+"Выбрать время",
+"Записаться",
+"Сохранить дату"
+]],
+["Забрать посылку",[
+"Проверить уведомление",
+"Определить пункт",
+"Проверить срок хранения",
+"Выбрать время",
+"Забрать",
+"Проверить содержимое"
+]],
+["Разобрать фотографии на компьютере",[
+"Найти хаос",
+"Удалить мусор",
+"Удалить дубликаты",
+"Сгруппировать фотографии",
+"Упорядочить папки",
+"Создать резервную копию"
+]],
+["Надо начать нормально спать",[
+"Определить проблему",
+"Выбрать время подъёма",
+"Определить время сна",
+"Убрать вечерние препятствия",
+"Наблюдать режим",
+"Скорректировать"
+]],
+["Не забыть про отпуск",[
+"Определить даты",
+"Проверить возможность",
+"Определить бюджет",
+"Выбрать направления",
+"Сравнить дорогу и жильё",
+"Выбрать",
+"Забронировать"
+]]
+],
+
+"Персонал":[
+["Виктор!!!",[
+"Определить контекст",
+"Найти последнюю переписку",
+"Восстановить открытый вопрос",
+"Определить ожидаемый результат",
+"Связаться с Виктором",
+"Зафиксировать договорённость"
+]],
+["Иванов — узнать про макет",[
+"Проверить последнюю версию",
+"Понять ожидаемые правки",
+"Уточнить решение Иванова",
+"Определить дальнейшую передачу",
+"Зафиксировать финальный вариант"
+]],
+["Петя обещал цифры!!!",[
+"Восстановить контекст",
+"Определить показатели",
+"Проверить договорённость",
+"Запросить данные",
+"Проверить полноту",
+"Использовать в отчёте"
+]],
+["Катя ждёт фотографии",[
+"Уточнить назначение",
+"Определить SKU",
+"Проверить архив",
+"Выбрать кадры",
+"Определить недостающие",
+"Передать комплект"
+]],
+["Поговорить с начальником про выставку",[
+"Определить цель",
+"Изучить аудиторию",
+"Оценить формат",
+"Собрать стоимость",
+"Определить потенциальный результат",
+"Подготовить предложение"
+]]
+],
+
+"Продажи":[
+["Надо что-то сделать с продажами колбас",[
+"Найти просевшие позиции",
+"Определить момент просадки",
+"Проверить цену",
+"Проверить промо и наличие",
+"Проверить дистрибуцию",
+"Посмотреть конкурентов",
+"Сформировать гипотезы"
+]],
+["Почему у нас просели сосиски?",[
+"Определить начало падения",
+"Найти SKU",
+"Сравнить регионы",
+"Сравнить каналы",
+"Проверить цену и наличие",
+"Посмотреть конкурентов",
+"Отделить факты от гипотез"
+]],
+["Проверить цены у конкурентов",[
+"Выбрать конкурентов",
+"Выбрать аналоги",
+"Учесть вес упаковки",
+"Зафиксировать регулярные цены",
+"Зафиксировать промо",
+"Сравнить с нашими",
+"Определить разрывы"
+]],
+["Клиент просил каталог",[
+"Уточнить интересующий ассортимент",
+"Проверить каталог",
+"Проверить цены",
+"Проверить позиции",
+"Выбрать формат",
+"Отправить",
+"Предложить обсуждение"
+]],
+["Встреча с сетью в четверг",[
+"Определить результат",
+"Изучить договорённости",
+"Изучить показатели",
+"Определить проблемы клиента",
+"Подготовить предложение",
+"Определить вопросы",
+"Собрать материалы"
+]]
+],
+
+"Маркетинг":[
+["Соцсети опять стоят",[
+"Посмотреть активность",
+"Найти провал",
+"Выяснить причину",
+"Проверить готовые материалы",
+"Определить темы",
+"Распределить подготовку",
+"Вернуть ритм"
+]],
+["Надо разобраться с рекламой",[
+"Собрать кампании",
+"Посмотреть расходы",
+"Сопоставить цели и результаты",
+"Найти слабые каналы",
+"Найти неэффективные расходы",
+"Перераспределить бюджет"
+]],
+["Придумать акцию на шашлыки",[
+"Выбрать SKU",
+"Проверить маржинальность",
+"Посмотреть конкурентов",
+"Выбрать механику",
+"Определить каналы",
+"Собрать концепцию",
+"Проверить экономику"
+]],
+["Идея: дегустация",[
+"Определить цель",
+"Выбрать продукцию",
+"Определить аудиторию",
+"Выбрать формат",
+"Найти площадку",
+"Определить оценку результата",
+"Подготовить концепцию"
+]],
+["Идея: конкурс в соцсетях",[
+"Определить цель",
+"Выбрать аудиторию",
+"Придумать механику",
+"Подобрать приз",
+"Проверить правила",
+"Определить контент",
+"Определить критерии успеха"
+]],
+["Идея: рецепты с нашей продукцией",[
+"Определить задачу рубрики",
+"Выбрать продукты",
+"Определить аудиторию",
+"Выбрать площадки",
+"Выбрать формат",
+"Сделать пилот",
+"Оценить реакцию"
+]],
+["Идея: набор для пикника",[
+"Определить сценарий",
+"Подобрать продукты",
+"Сформировать состав",
+"Рассчитать себестоимость",
+"Определить цену",
+"Определить упаковку",
+"Проверить конкурентов"
+]]
+],
+
+"Структура":[
+["Нужно обновить презентацию",[
+"Найти текущую версию",
+"Определить устаревшие блоки",
+"Обновить информацию",
+"Заменить изображения",
+"Проверить логику",
+"Адаптировать под аудиторию",
+"Подготовить финальную версию"
+]],
+["Найти нормального фотографа",[
+"Определить задачу",
+"Определить стиль",
+"Найти кандидатов",
+"Сравнить портфолио",
+"Запросить стоимость",
+"Выбрать специалиста",
+"Согласовать ТЗ"
+]],
+["Уточнить сроки производства новой упаковки",[
+"Определить этап",
+"Проверить макет",
+"Проверить материалы",
+"Получить срок производства",
+"Учесть логистику",
+"Определить дату запуска"
+]]
+],
+
+"Стратегия":[
+["Когда-нибудь сделать свой проект",[
+"Выписать идеи",
+"Выбрать перспективную",
+"Определить проблему",
+"Описать пользователя",
+"Сформулировать ценность",
+"Определить MVP",
+"Придумать первый тест"
+]]
+]
+
+};
+
+
+/* =========================================================
+   НАСТОЯЩАЯ ДЕРЕВООБРАЗНАЯ СТРУКТУРА
+========================================================= */
+
+class TreeNode{
+
+    constructor({
+        id,
+        text,
+        type,
+        parent=null,
+        children=[]
+    }){
+
+        this.id=id;
+        this.text=text;
+        this.type=type;
+        this.parent=parent;
+
+        this.children=children;
+
+        this.expanded=false;
+
+        this.x=0;
+        this.y=0;
+
+        this.width=0;
+        this.height=0;
+
+        this.subtreeHeight=0;
+    }
+}
+
+
+const root =
+    new TreeNode({
+        id:"root",
+        text:"ЖИЗНЬ",
+        type:"life"
+    });
+
+
+const directories =
+    Object.keys(DATA).map(
+        (name,di)=>{
+
+            const directory =
+                new TreeNode({
+                    id:`directory-${di}`,
+                    text:name,
+                    type:"directory",
+                    parent:root
+                });
+
+
+            directory.sourceName=name;
+
+
+            directory.children =
+                DATA[name].map(
+                    (task,ti)=>{
+
+                        const taskNode =
+                            new TreeNode({
+                                id:`task-${di}-${ti}`,
+                                text:task[0],
+                                type:"task",
+                                parent:directory
+                            });
+
+
+                        taskNode.source=
+                            task;
+
+
+                        taskNode.children =
+                            task[1].map(
+                                (step,si)=>
+                                    new TreeNode({
+                                        id:`step-${di}-${ti}-${si}`,
+                                        text:step,
+                                        type:"step",
+                                        parent:taskNode
+                                    })
+                            );
+
+
+                        return taskNode;
+                    }
+                );
+
+
+            return directory;
+        }
+    );
+
+
+root.children=directories;
+
+
+/* =========================================================
+   VIEWPORT / WORLD
+========================================================= */
+
+const viewport =
+    document.getElementById("viewport");
+
+const world =
+    document.getElementById("world");
+
+const svg =
+    document.getElementById("links");
+
+const hint =
+    document.getElementById("hint");
+
+
+const WORLD_CENTER_X=15000;
+const WORLD_CENTER_Y=9000;
+
+
+/* =========================================================
+   РАЗМЕРЫ УЗЛОВ
+========================================================= */
+
+const NODE_GAP=42;
+
+const LEVEL_GAP=190;
+
+
+/*
+   Реальная высота поддерева.
+
+   Это главное.
+
+   Если у одного узла раскрыто
+   10 детей, он получает высоту
+   всех этих детей.
+
+   Поэтому соседний узел
+   физически не может попасть
+   внутрь его пространства.
+*/
+
+function calculateSize(node){
+
+    const sizes={
+        life:[180,180],
+        directory:[210,76],
+        task:[245,78],
+        step:[270,76]
+    };
+
+
+    node.width =
+        sizes[node.type][0];
+
+    node.height =
+        sizes[node.type][1];
+
+
+    const visibleChildren =
+        node.expanded
+            ? node.children
+            : [];
+
+
+    if(
+        visibleChildren.length===0
+    ){
+
+        node.subtreeHeight=
+            node.height;
+
+        return node.subtreeHeight;
+    }
+
+
+    let childrenHeight=0;
+
+
+    visibleChildren.forEach(
+        child=>{
+
+            childrenHeight +=
+                calculateSize(child);
+
+        }
+    );
+
+
+    childrenHeight +=
+        NODE_GAP*
+        (visibleChildren.length-1);
+
+
+    node.subtreeHeight =
+        Math.max(
+            node.height,
+            childrenHeight
+        );
+
+
+    return node.subtreeHeight;
+}
+
+
+/* =========================================================
+   РАЗМЕЩЕНИЕ
+========================================================= */
+
+
+/*
+   XMind-подобный принцип:
+
+   ROOT
+     |
+     +-- ветви сверху вниз
+
+   Каждая ветвь получает
+   собственную вертикальную полосу.
+
+   Если ветвь раскрывается,
+   её полоса увеличивается.
+
+   Остальные ветви автоматически
+   сдвигаются.
+*/
+
+function layoutChildren(
+    node,
+    direction,
+    centerY
+){
+
+    const children =
+        node.expanded
+            ? node.children
+            : [];
+
+
+    if(!children.length){
+        return;
+    }
+
+
+    const totalHeight =
+        children.reduce(
+            (sum,child)=>
+                sum+
+                child.subtreeHeight,
+            0
+        )
+        +
+        NODE_GAP*
+        (children.length-1);
+
+
+    let cursor =
+        centerY-
+        totalHeight/2;
+
+
+    children.forEach(
+        child=>{
+
+            const childCenter =
+                cursor+
+                child.subtreeHeight/2;
+
+
+            child.x =
+                node.x+
+                direction*
+                (
+                    node.width/2+
+                    LEVEL_GAP+
+                    child.width/2
+                );
+
+
+            child.y =
+                childCenter;
+
+
+            layoutChildren(
+                child,
+                direction,
+                childCenter
+            );
+
+
+            cursor +=
+                child.subtreeHeight+
+                NODE_GAP;
+        }
+    );
+}
+
+
+/* =========================================================
+   ROOT LAYOUT
+========================================================= */
+
+function layout(){
+
+    calculateSize(root);
+
+
+    root.x =
+        WORLD_CENTER_X;
+
+    root.y =
+        WORLD_CENTER_Y;
+
+
+    const children =
+        root.expanded
+            ? root.children
+            : [];
+
+
+    if(!children.length){
+        return;
+    }
+
+
+    /*
+       Половина директорий слева,
+       половина справа.
+
+       Это делает карту похожей
+       на классический XMind.
+    */
+
+    const left =
+        children.slice(
+            0,
+            Math.ceil(
+                children.length/2
+            )
+        );
+
+
+    const right =
+        children.slice(
+            Math.ceil(
+                children.length/2
+            )
+        );
+
+
+    /*
+       Для симметрии используем
+       отдельную вертикальную раскладку.
+    */
+
+    function layoutSide(
+        list,
+        direction
+    ){
+
+        if(!list.length){
+            return;
+        }
+
+
+        const total =
+            list.reduce(
+                (sum,n)=>
+                    sum+n.subtreeHeight,
+                0
+            )
+            +
+            NODE_GAP*
+            (list.length-1);
+
+
+        let cursor =
+            WORLD_CENTER_Y-
+            total/2;
+
+
+        list.forEach(
+            node=>{
+
+                const cy =
+                    cursor+
+                    node.subtreeHeight/2;
+
+
+                node.x =
+                    WORLD_CENTER_X+
+                    direction*
+                    (
+                        root.width/2+
+                        LEVEL_GAP+
+                        node.width/2
+                    );
+
+
+                node.y=cy;
+
+
+                layoutChildren(
+                    node,
+                    direction,
+                    cy
+                );
+
+
+                cursor +=
+                    node.subtreeHeight+
+                    NODE_GAP;
+            }
+        );
+    }
+
+
+    layoutSide(
+        left,
+        -1
+    );
+
+
+    layoutSide(
+        right,
+        1
+    );
+}
+
+
+/* =========================================================
+   SVG CONNECTIONS
+========================================================= */
+
+function clearLinks(){
+
+    while(
+        svg.firstChild
+    ){
+        svg.removeChild(
+            svg.firstChild
+        );
+    }
+}
+
+
+function drawLine(
+    parent,
+    child
+){
+
+    /*
+       Горизонтальная мягкая
+       кривая как в mind-map.
+    */
+
+    const startX =
+        parent.x+
+        (
+            child.x>parent.x
+                ? parent.width/2
+                : -parent.width/2
+        );
+
+
+    const endX =
+        child.x+
+        (
+            child.x>parent.x
+                ? -child.width/2
+                : child.width/2
+        );
+
+
+    const startY =
+        parent.y;
+
+    const endY =
+        child.y;
+
+
+    const midX =
+        (startX+endX)/2;
+
+
+    const path =
+        document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+        );
+
+
+    path.setAttribute(
+        "d",
+        `
+        M ${startX} ${startY}
+        C
+        ${midX} ${startY},
+        ${midX} ${endY},
+        ${endX} ${endY}
+        `
+    );
+
+
+    path.classList.add("link");
+
+
+    svg.appendChild(path);
+}
+
+
+function drawConnections(
+    node
+){
+
+    if(
+        !node.expanded
+    ){
+        return;
+    }
+
+
+    node.children.forEach(
+        child=>{
+
+            drawLine(
+                node,
+                child
+            );
+
+            drawConnections(
+                child
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   DOM NODE
+========================================================= */
+
+const elements =
+    new Map();
+
+
+function createElement(
+    node
+){
+
+    let element =
+        elements.get(
+            node.id
+        );
+
+
+    if(!element){
+
+        element =
+            document.createElement(
+                "div"
+            );
+
+
+        element.className=
+            `node ${node.type}`;
+
+
+        element.dataset.id=
+            node.id;
+
+
+        const text =
+            document.createElement(
+                "span"
+            );
+
+
+        text.textContent=
+            node.text;
+
+
+        element.appendChild(
+            text
+        );
+
+
+        /*
+           Плюс/минус появляется
+           только если у узла есть дети.
+        */
+
+        if(
+            node.children.length
+        ){
+
+            const toggle =
+                document.createElement(
+                    "div"
+                );
+
+
+            toggle.className=
+                "toggle";
+
+
+            element.appendChild(
+                toggle
+            );
+        }
+
+
+        element.addEventListener(
+            "click",
+            event=>{
+
+                event.stopPropagation();
+
+                toggleNode(
+                    node
+                );
+
+            }
+        );
+
+
+        world.appendChild(
+            element
+        );
+
+
+        elements.set(
+            node.id,
+            element
+        );
+    }
+
+
+    element.querySelector(
+        ".toggle"
+    )?.replaceChildren(
+        document.createTextNode(
+            node.expanded
+                ? "−"
+                : "+"
+        )
+    );
+
+
+    element.style.width=
+        `${node.width}px`;
+
+
+    element.style.minHeight=
+        `${node.height}px`;
+
+
+    element.style.left=
+        `${node.x}px`;
+
+
+    element.style.top=
+        `${node.y}px`;
+
+
+    requestAnimationFrame(
+        ()=>{
+            element.classList.add(
+                "visible"
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   СИНХРОНИЗАЦИЯ DOM
+========================================================= */
+
+function collectVisible(
+    node,
+    result=[]
+){
+
+    result.push(node);
+
+
+    if(
+        node.expanded
+    ){
+
+        node.children.forEach(
+            child=>
+                collectVisible(
+                    child,
+                    result
+                )
+        );
+    }
+
+
+    return result;
+}
+
+
+function render(){
+
+    layout();
+
+
+    const visible =
+        collectVisible(
+            root
+        );
+
+
+    const visibleIds =
+        new Set(
+            visible.map(
+                n=>n.id
+            )
+        );
+
+
+    /*
+       Удаляем элементы,
+       которые больше не видимы.
+    */
+
+    elements.forEach(
+        (element,id)=>{
+
+            if(
+                !visibleIds.has(id)
+            ){
+
+                element.classList.remove(
+                    "visible"
+                );
+
+
+                setTimeout(
+                    ()=>{
+
+                        if(
+                            !visibleIds.has(id)
+                        ){
+
+                            element.remove();
+
+                            elements.delete(id);
+                        }
+
+                    },
+                    300
+                );
+            }
+        }
+    );
+
+
+    visible.forEach(
+        node=>
+            createElement(node)
+    );
+
+
+    clearLinks();
+
+
+    drawConnections(
+        root
+    );
+
+
+    hint.style.opacity =
+        root.expanded
+            ? "0"
+            : "1";
+
+
+    /*
+       После раскрытия подстраиваем
+       масштаб только если карта
+       стала больше viewport.
+    */
+
+    requestAnimationFrame(
+        ensureVisible
+    );
+}
+
+
+/* =========================================================
+   TOGGLE
+========================================================= */
+
+function toggleNode(
+    node
+){
+
+    if(
+        !node.children.length
+    ){
+        return;
+    }
+
+
+    node.expanded=
+        !node.expanded;
+
+
+    /*
+       Если закрываем узел,
+       закрываем всё его поддерево.
+
+       Это поведение очень близко
+       к mind-map приложениям.
+    */
+
+    if(
+        !node.expanded
+    ){
+
+        collapseAll(
+            node
+        );
+    }
+
+
+    render();
+}
+
+
+function collapseAll(
+    node
+){
+
+    node.children.forEach(
+        child=>{
+
+            child.expanded=
+                false;
+
+            collapseAll(
+                child
+            );
+
+        }
+    );
+}
+
+
+/* =========================================================
+   AUTO FIT
+========================================================= */
+
+function getBounds(){
+
+    const visible =
+        collectVisible(
+            root,
+            []
+        );
+
+
+    let minX=Infinity;
+    let minY=Infinity;
+    let maxX=-Infinity;
+    let maxY=-Infinity;
+
+
+    visible.forEach(
+        node=>{
+
+            minX=
+                Math.min(
+                    minX,
+                    node.x-node.width/2
+                );
+
+
+            maxX=
+                Math.max(
+                    maxX,
+                    node.x+node.width/2
+                );
+
+
+            minY=
+                Math.min(
+                    minY,
+                    node.y-node.height/2
+                );
+
+
+            maxY=
+                Math.max(
+                    maxY,
+                    node.y+node.height/2
+                );
+
+        }
+    );
+
+
+    return {
+        minX,
+        minY,
+        maxX,
+        maxY
+    };
+}
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+let camera={
+    x:0,
+    y:0,
+    scale:.65
+};
+
+
+function updateCamera(){
+
+    world.style.transform=
+        `
+        translate(
+            ${camera.x}px,
+            ${camera.y}px
+        )
+        scale(
+            ${camera.scale}
+        )
+        `;
+}
+
+
+function fitMap(){
+
+    const bounds=
+        getBounds();
+
+
+    const vw=
+        viewport.clientWidth;
+
+    const vh=
+        viewport.clientHeight;
+
+
+    const padding=100;
+
+
+    const width=
+        bounds.maxX-
+        bounds.minX+
+        padding*2;
+
+
+    const height=
+        bounds.maxY-
+        bounds.minY+
+        padding*2;
+
+
+    camera.scale=
+        Math.min(
+            .85,
+            Math.max(
+                .15,
+                Math.min(
+                    vw/width,
+                    vh/height
+                )
+            )
+        );
+
+
+    const cx=
+        (bounds.minX+
+         bounds.maxX)/2;
+
+
+    const cy=
+        (bounds.minY+
+         bounds.maxY)/2;
+
+
+    camera.x=
+        vw/2-
+        cx*camera.scale;
+
+
+    camera.y=
+        vh/2-
+        cy*camera.scale;
+
+
+    updateCamera();
+}
+
+
+function ensureVisible(){
+
+    /*
+       Если карта становится шире
+       viewport — уменьшаем масштаб.
+
+       Если она помещается —
+       НЕ трогаем zoom пользователя.
+    */
+
+    const bounds=
+        getBounds();
+
+
+    const vw=
+        viewport.clientWidth;
+
+    const vh=
+        viewport.clientHeight;
+
+
+    const width=
+        bounds.maxX-
+        bounds.minX;
+
+    const height=
+        bounds.maxY-
+        bounds.minY;
+
+
+    const required=
+        Math.min(
+            (vw-80)/width,
+            (vh-80)/height
+        );
+
+
+    if(
+        required<
+        camera.scale
+    ){
+
+        camera.scale=
+            Math.max(
+                .15,
+                required
+            );
+
+
+        const cx=
+            (bounds.minX+
+             bounds.maxX)/2;
+
+
+        const cy=
+            (bounds.minY+
+             bounds.maxY)/2;
+
+
+        camera.x=
+            vw/2-
+            cx*camera.scale;
+
+
+        camera.y=
+            vh/2-
+            cy*camera.scale;
+
+
+        updateCamera();
+    }
+}
+
+
+/* =========================================================
+   ZOOM
+========================================================= */
+
+function zoomAt(
+    amount,
+    sx,
+    sy
+){
+
+    const worldX=
+        (sx-camera.x)/
+        camera.scale;
+
+
+    const worldY=
+        (sy-camera.y)/
+        camera.scale;
+
+
+    camera.scale=
+        Math.max(
+            .08,
+            Math.min(
+                2.5,
+                camera.scale+
+                amount
+            )
+        );
+
+
+    camera.x=
+        sx-
+        worldX*camera.scale;
+
+
+    camera.y=
+        sy-
+        worldY*camera.scale;
+
+
+    updateCamera();
+}
+
+
+viewport.addEventListener(
+    "wheel",
+    event=>{
+
+        event.preventDefault();
+
+
+        zoomAt(
+            event.deltaY<0
+                ? .1
+                : -.1,
+            event.clientX,
+            event.clientY
+        );
+
+    },
+    {passive:false}
+);
+
+
+/* =========================================================
+   PAN
+========================================================= */
+
+let dragging=false;
+let dragX=0;
+let dragY=0;
+let startCameraX=0;
+let startCameraY=0;
+
+
+viewport.addEventListener(
+    "mousedown",
+    event=>{
+
+        if(
+            event.target.closest(".node")
+        ){
+            return;
+        }
+
+
+        dragging=true;
+
+
+        viewport.classList.add(
+            "dragging"
+        );
+
+
+        dragX=
+            event.clientX;
+
+        dragY=
+            event.clientY;
+
+
+        startCameraX=
+            camera.x;
+
+        startCameraY=
+            camera.y;
+    }
+);
+
+
+window.addEventListener(
+    "mousemove",
+    event=>{
+
+        if(!dragging){
+            return;
+        }
+
+
+        camera.x=
+            startCameraX+
+            event.clientX-
+            dragX;
+
+
+        camera.y=
+            startCameraY+
+            event.clientY-
+            dragY;
+
+
+        updateCamera();
+    }
+);
+
+
+window.addEventListener(
+    "mouseup",
+    ()=>{
+        dragging=false;
+
+        viewport.classList.remove(
+            "dragging"
+        );
+    }
+);
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+document
+    .getElementById("plus")
+    .onclick=
+    ()=>{
+        zoomAt(
+            .15,
+            viewport.clientWidth/2,
+            viewport.clientHeight/2
+        );
+    };
+
+
+document
+    .getElementById("minus")
+    .onclick=
+    ()=>{
+        zoomAt(
+            -.15,
+            viewport.clientWidth/2,
+            viewport.clientHeight/2
+        );
+    };
+
+
+document
+    .getElementById("home")
+    .onclick=
+    fitMap;
+
+
+/* =========================================================
+   START
+========================================================= */
+
+/*
+   Только ЖИЗНЬ открыта.
+   Директории скрыты.
+*/
+
+root.expanded=false;
+
+
+/*
+   Первичная позиция.
+*/
+
+root.x=
+    WORLD_CENTER_X;
+
+root.y=
+    WORLD_CENTER_Y;
+
+
+render();
+
+
+/*
+   Центрируем ЖИЗНЬ.
+*/
+
+setTimeout(
+    ()=>{
+        camera.scale=.65;
+
+        camera.x=
+            viewport.clientWidth/2-
+            WORLD_CENTER_X*
+            camera.scale;
+
+        camera.y=
+            viewport.clientHeight/2-
+            WORLD_CENTER_Y*
+            camera.scale;
+
+        updateCamera();
+    },
+    50
+);
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+window.addEventListener(
+    "resize",
+    ()=>{
+        render();
+
+        if(
+            !root.expanded
+        ){
+            camera.x=
+                viewport.clientWidth/2-
+                WORLD_CENTER_X*
+                camera.scale;
+
+            camera.y=
+                viewport.clientHeight/2-
+                WORLD_CENTER_Y*
+                camera.scale;
+
+            updateCamera();
+        }
+    }
+);
+
+</script>
+
+</body>
+</html>
